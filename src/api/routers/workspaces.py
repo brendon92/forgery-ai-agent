@@ -65,10 +65,15 @@ async def get_workspace_graph(workspace_id: str):
     Export the sub-graph for visualization.
     Simplified: Returns a cypher query result.
     """
-    query = f"""
-    MATCH (w:Workspace {{id: '{workspace_id}'}})-[r*1..2]-(n)
+    query = """
+    MATCH (w:Workspace {id: $workspace_id})-[r*1..2]-(n)
     RETURN w, r, n LIMIT 100
     """
+    # Assuming the driver or helper supports params, which LlamaIndex property graph usually does via run/query
+    # But wait, self.graph_store.query usually takes params.
+    # Let's check how it's called. The code below likely calls self.graph_store.client.query or similar.
+    # If it's the LlamaIndex wrapper, we pass params differently.
+    # Let's verify the call site first.
     # result = ingestion_pipeline.graph_store.query(query)
     # return result
     return {"message": "Graph export not fully implemented yet"}

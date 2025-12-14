@@ -6,11 +6,16 @@ class SemanticToolRouter:
     def __init__(self, top_k: int = 5):
         self.top_k = top_k
         self.embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-        self.vector_store = Qdrant.from_existing_collection(
-            embedding=self.embeddings,
-            collection_name="mcp_tools",
-            url="http://localhost:6333"
-        )
+        try:
+            self.vector_store = Qdrant.from_existing_collection(
+                embedding=self.embeddings,
+                collection_name="mcp_tools",
+                url="http://localhost:6333"
+            )
+        except Exception:
+            print("Warning: 'mcp_tools' collection not found in Qdrant. Tool routing will be disabled until tools are indexed.")
+            # Fallback or allow it to be None
+            self.vector_store = None
 
     def route(self, query: str) -> List[Dict[str, Any]]:
         """

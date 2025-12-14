@@ -12,7 +12,7 @@
 
 **Forgery** is a next-generation "Executive Agent" designed to handle complex, multi-step tasks with high reliability. Unlike standard chatbots that drift or hallucinate, Forgery prioritizes **determinism**, **deep contextual memory**, and **self-correction**.
 
-Built on a rigorous architectural blueprint (see `FINAL-RESEARCH.md`), it combines graph-based memory with state-machine orchestration to creating an agent that can plan, reflect, and learn.
+Built on a rigorous architectural blueprint (see `FINAL-RESEARCH.md`), it combines graph-based memory with state-machine orchestration to create an agent that can plan, reflect, and learn.
 
 ## 🧠 Core Mechanics
 
@@ -107,4 +107,3 @@ forgery-ai-agent/
 -   [x] **Phase 4: Production** (Docker, Tests, Langfuse, CrewAI)
 
 ---
-*Based on the research blueprint in `FINAL-RESEARCH.md`.*

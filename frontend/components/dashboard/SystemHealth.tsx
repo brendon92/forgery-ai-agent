@@ -43,14 +43,14 @@ export default function SystemHealth() {
                 title="Knowledge Graph"
                 icon={<Database className="w-5 h-5 text-purple-400" />}
                 status={status.neo4j.status}
-                value={`${status.neo4j.latency}ms`}
+                value={`${status.neo4j?.latency || 0}ms`}
                 label="Neo4j"
             />
             <HealthCard
                 title="Vector Memory"
                 icon={<Server className="w-5 h-5 text-blue-400" />}
                 status={status.qdrant.status}
-                value={`${status.qdrant.latency}ms`}
+                value={`${status.qdrant?.latency || 0}ms`}
                 label="Qdrant"
             />
             <HealthCard

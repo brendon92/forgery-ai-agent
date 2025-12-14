@@ -12,7 +12,7 @@ class HealthMonitor:
     async def start(self):
         self.is_running = True
         logger.info("Health Monitor started.")
-        asyncio.create_task(self._monitor_loop())
+        self._monitor_task = asyncio.create_task(self._monitor_loop())
 
     async def stop(self):
         self.is_running = False

@@ -10,12 +10,19 @@ class ToolIndexer:
         self.qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
         self.collection_name = "mcp_tools"
         
-        # Initialize Vector Store
-        self.vector_store = Qdrant.from_existing_collection(
-            embedding=self.embeddings,
-            collection_name=self.collection_name,
-            url=self.qdrant_url
-        )
+        # Initialize Vector Store (allow creation)
+        try:
+            self.vector_store = Qdrant.from_existing_collection(
+                embedding=self.embeddings,
+                collection_name=self.collection_name,
+                url=self.qdrant_url
+            )
+        except Exception:
+             # Collection likely doesn't exist, we will create it when adding texts
+             # But we need a wrapper. We'll init with from_texts later or just pass for now
+             # Since we can't easily init an empty Qdrant store in LangChain without documents,
+             # We will handle this in index_tools
+             self.vector_store = None
 
     def index_tools(self, tools: List[BaseTool]):
         """
@@ -37,7 +44,16 @@ class ToolIndexer:
             })
             
         print(f"Indexing {len(tools)} tools into Qdrant...")
-        self.vector_store.add_texts(texts=texts, metadatas=metadatas)
+        if self.vector_store is None:
+             self.vector_store = Qdrant.from_texts(
+                texts=texts,
+                metadatas=metadatas,
+                embedding=self.embeddings,
+                collection_name=self.collection_name,
+                url=self.qdrant_url
+            )
+        else:
+            self.vector_store.add_texts(texts=texts, metadatas=metadatas)
         print("Tool indexing complete.")
 
     def delete_all_tools(self):

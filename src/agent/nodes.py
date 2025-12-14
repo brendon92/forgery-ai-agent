@@ -60,7 +60,8 @@ def agent_node(state: AgentState):
     Uses RAG-on-Tools to select relevant tools first.
     """
     messages = state['messages']
-    user_query = messages[0].content # Simplified assumption
+    # Use the last human message or just the last message as context
+    user_query = messages[-1].content
     
     # Dynamic Tool Retrieval
     relevant_tools = tool_router.route(user_query)
