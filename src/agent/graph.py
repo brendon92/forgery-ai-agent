@@ -1,6 +1,22 @@
 from langgraph.graph import StateGraph, END
 from src.agent.state import AgentState
-from src.agent.nodes import agent_node, reflection_node, tool_node, should_continue
+from src.agent.nodes import agent_node, ReflectionNode, tool_node
+
+# Instantiate class-based nodes
+reflection_node = ReflectionNode()
+
+def should_continue(state: AgentState):
+    """
+    Router logic based on reflection score and retry count.
+    """
+    score = state.get('reflection_score', 0.0)
+    retries = state.get('retry_count', 0)
+    
+    if score >= 0.8:
+        return "end"
+    if retries >= 3: # Max 3 retries (total 4 attempts)
+        return "end" # Or redirect to a 'failure' node
+    return "reflect"
 
 # Define the graph
 workflow = StateGraph(AgentState)
@@ -15,7 +31,6 @@ workflow.set_entry_point("agent")
 
 # Add edges
 workflow.add_edge("tools", "agent")
-workflow.add_edge("reflect", "agent") # Loop back for refinement
 
 # Conditional edges
 workflow.add_conditional_edges(
@@ -26,6 +41,11 @@ workflow.add_conditional_edges(
         "reflect": "reflect"
     }
 )
+
+# Loop back from reflection to agent (Refinement Loop)
+# In a real implementation, we might want a specific 'refine' node that
+# takes the critique and modifies the original query
+workflow.add_edge("reflect", "agent")
 
 # Compile the graph
 app = workflow.compile()

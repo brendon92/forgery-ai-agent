@@ -12,8 +12,12 @@ async def main():
         "retry_count": 0
     }
     
+    # Initialize Langfuse Handler
+    from langfuse.callback import CallbackHandler
+    langfuse_handler = CallbackHandler()
+
     # Run the graph
-    async for output in app.astream(initial_state):
+    async for output in app.astream(initial_state, config={"callbacks": [langfuse_handler]}):
         for key, value in output.items():
             print(f"Node '{key}':")
             print(value)
