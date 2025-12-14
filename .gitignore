@@ -10,7 +10,7 @@ build/
 *.egg-info/
 data/
 FINAL-RESEARCH.md
-
+PRIV/
 # Node
 node_modules/
 npm-debug.log
