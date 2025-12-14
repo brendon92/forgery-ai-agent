@@ -1,0 +1,12 @@
+langgraph
+langchain
+langchain-openai
+langchain-community
+neo4j
+qdrant-client
+langfuse
+pydantic
+python-dotenv
+llama-index
+llama-index-graph-stores-neo4j
+llama-index-vector-stores-qdrant
