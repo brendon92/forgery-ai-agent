@@ -8,7 +8,15 @@ from src.memory.graph_ingestion import GraphIngestionPipeline
 # from src.memory.graph_retrieval import GraphRetrievalSystem 
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
-ingestion_pipeline = GraphIngestionPipeline()
+
+# Lazy instantiation to prevent import-time connection errors
+_ingestion_pipeline = None
+
+def get_ingestion_pipeline():
+    global _ingestion_pipeline
+    if _ingestion_pipeline is None:
+        _ingestion_pipeline = GraphIngestionPipeline()
+    return _ingestion_pipeline
 
 class WorkspaceCreate(BaseModel):
     title: str
@@ -24,7 +32,8 @@ async def create_workspace(workspace: WorkspaceCreate):
     workspace_id = str(uuid.uuid4())
     # Create the root Workspace node in Neo4j
     try:
-        ingestion_pipeline.add_workspace_node(workspace_id, workspace.title)
+        pipeline = get_ingestion_pipeline()
+        pipeline.add_workspace_node(workspace_id, workspace.title)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
         
@@ -53,7 +62,8 @@ async def upload_workspace_files(workspace_id: str, files: List[UploadFile] = Fi
     
     # Trigger ingestion
     try:
-        await ingestion_pipeline.ingest_documents(documents, workspace_id)
+        pipeline = get_ingestion_pipeline()
+        await pipeline.ingest_documents(documents, workspace_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
         
@@ -65,7 +75,8 @@ async def list_workspaces():
     # For now, we'll need a method in ingestion_pipeline or a direct query here
     # Since ingestion_pipeline wraps storage, let's assume we can query via driver
     try:
-        results, _, _ = ingestion_pipeline.graph_store.query(
+        pipeline = get_ingestion_pipeline()
+        results, _, _ = pipeline.graph_store.query(
             f"MATCH (w:Workspace) RETURN w.id as id, w.title as title, w.goal as goal"
         )
         workspaces = []
@@ -91,7 +102,8 @@ async def delete_workspace(workspace_id: str):
         MATCH (w:Workspace {id: $workspace_id})
         DETACH DELETE w
         """
-        ingestion_pipeline.graph_store.query(query, params={"workspace_id": workspace_id})
+        pipeline = get_ingestion_pipeline()
+        pipeline.graph_store.query(query, params={"workspace_id": workspace_id})
         
         # Also cleanup vector store for this workspace_id if we filtered by it
         # (Not implemented in this step, but noted)
@@ -120,7 +132,8 @@ async def get_workspace_graph(workspace_id: str):
     try:
         # We need to return raw graph data
         # Check if query method returns raw neo4j records
-        data, keys, _ = ingestion_pipeline.graph_store.query(query, params={"workspace_id": workspace_id})
+        pipeline = get_ingestion_pipeline()
+        data, keys, _ = pipeline.graph_store.query(query, params={"workspace_id": workspace_id})
         
         # Transform to JSON structure
         nodes = []

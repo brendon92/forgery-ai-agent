@@ -67,6 +67,37 @@ def save_settings(settings: Settings):
 async def get_settings():
     return load_settings()
 
+@router.get("/mcp_servers")
+async def get_mcp_servers():
+    """Returns a list of connected MCP servers and their tools."""
+    from src.tools.mcp_manager import mcp_manager
+    
+    servers = []
+    for name, conn in mcp_manager.connections.items():
+        tools = [{"name": t.name, "description": t.description} for t in conn["tools"].values()]
+        servers.append({
+            "name": name,
+            "status": "connected",
+            "tools": tools
+        })
+    return {"servers": servers}
+
+class ConnectServerRequest(BaseModel):
+    name: str
+    command: str
+    args: list[str] = []
+    env: dict = {}
+
+@router.post("/mcp_servers/connect")
+async def connect_mcp_server(request: ConnectServerRequest):
+    """Connects a new MCP server dynamically."""
+    from src.tools.mcp_manager import mcp_manager
+    try:
+        await mcp_manager.connect_server(request.name, request.command, request.args, request.env)
+        return {"status": "connected", "server": request.name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.put("/", response_model=Settings)
 async def update_settings(settings: Settings):
     try:

@@ -1,17 +1,24 @@
 uvicorn
 fastapi
 websockets
-crewai
+crewai>=1.0.0
 crewai-tools
-langgraph
-langchain
+# Pinning core libs to avoid resolver hell
+langgraph>=0.2.0
+langchain>=0.3.0
 langchain-openai
 langchain-community
+# Databases
 neo4j
 qdrant-client
+# Utils
 langfuse
-pydantic
+pydantic>=2.9.0
 python-dotenv
+# LlamaIndex
 llama-index
 llama-index-graph-stores-neo4j
 llama-index-vector-stores-qdrant
+psutil
+# MCP
+mcp

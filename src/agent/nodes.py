@@ -84,38 +84,48 @@ def agent_node(state: AgentState):
     response = llm.invoke([SystemMessage(content=system_prompt)] + messages)
     return {"messages": [response]}
 
-def tool_node(state: AgentState):
+import re
+async def tool_node(state: AgentState):
     """
-    Executes tools by parsing the last message for tool calls.
-    Connects to the MCP server to execute.
+    Executes a tool call if the last message contains one.
     """
-    messages = state['messages']
+    messages = state["messages"]
     last_message = messages[-1]
     
-    # Simple JSON parsing for tool calls (since we prompted for JSON)
-    # In a more advanced setup with .bind_tools(), we would check message.tool_calls
-    tool_content = last_message.content
+    # Simple parsing logic for tool calls in text
+    content = last_message.content
+    
+    # Regex to find JSON block
+    # Matches ```json { ... } ``` or just { ... }
+    # This is a basic implementation.
+    json_match = re.search(r"\{.*\}", content, re.DOTALL)
     
     try:
-        # Extract JSON if present
-        import re
-        json_match = re.search(r'\{.*\}', tool_content, re.DOTALL)
         if json_match:
             tool_call = json.loads(json_match.group(0))
             if "tool" in tool_call:
-                from src.tools.mcp_client import mcp_client
+                from src.tools.mcp_manager import mcp_manager
                 
                 tool_name = tool_call["tool"]
                 args = tool_call.get("args", {})
                 
                 print(f"Executing tool: {tool_name}")
-                # Ideally async, but node is sync here unless we change to async def
-                # For now using a sync wrapper or just simulating the call if client is async only
-                # The mcp_client.call_tool is async. We need to run it.
-                import asyncio
-                result = asyncio.run(mcp_client.call_tool(tool_name, args))
                 
-                return {"messages": [AIMessage(content=f"Tool Result: {result}")]}
+                server_name = None
+                for s_name, conn in mcp_manager.connections.items():
+                    if tool_name in conn["tools"]:
+                        server_name = s_name
+                        break
+                
+                if server_name:
+                    # Async execution
+                    try:
+                        result = await mcp_manager.call_tool(server_name, tool_name, args)
+                        return {"messages": [AIMessage(content=f"Tool Result: {result}")]}
+                    except Exception as e:
+                         return {"messages": [AIMessage(content=f"Error executing tool: {e}")]}
+                else:
+                    return {"messages": [AIMessage(content=f"Error: Tool '{tool_name}' not found on any connected MCP server.")]}
     except Exception as e:
         print(f"Tool execution parsing failed: {e}")
 

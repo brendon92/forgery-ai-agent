@@ -1,6 +1,6 @@
-import asyncio
-# Placeholder for actual MCP client library
-# In a real scenario, we'd use the official python-mcp-sdk or similar
+# LEGACY STUB
+# This file is being replaced by src/tools/mcp_manager.py which uses the official SDK.
+# Keeping this stub to avoid breaking imports elsewhere temporarily.
 
 class MCPClient:
     def __init__(self, server_url: str):
@@ -8,24 +8,13 @@ class MCPClient:
         self.tools = []
 
     async def connect(self):
-        """Connect to the MCP server."""
-        print(f"Connecting to MCP server at {self.server_url}...")
-        # Simulation
-        await asyncio.sleep(0.1)
-        self.tools = [
-            {"name": "web_search", "description": "Search the web"},
-            {"name": "read_file", "description": "Read a file"}
-        ]
-        print("Connected.")
+        print(f"Connecting to MCP server at {self.server_url} (Legacy Client)...")
+        self.tools = []
 
     async def list_tools(self):
-        """List available tools."""
         return self.tools
 
     async def call_tool(self, tool_name: str, arguments: dict):
-        """Call a tool."""
-        print(f"Calling tool {tool_name} with args {arguments}")
-        # Simulation
-        return f"Result of {tool_name}"
+        return "Legacy MCPClient is deprecated. Use MCPServerManager."
 
-mcp_client = MCPClient("http://localhost:8000")
+mcp_client = MCPClient("dummy")

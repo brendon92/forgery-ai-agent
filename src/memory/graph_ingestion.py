@@ -25,7 +25,7 @@ class GraphIngestionPipeline:
                     llm=OpenAI(model="gpt-4"),
                     possible_entities=[e.value for e in NodeLabel],
                     possible_relations=[r.value for r in RelationshipType],
-                    strict=True # Enforce schema adherence
+                    strict=False # Avoid Pydantic schema error
                 )
             ]
         )
