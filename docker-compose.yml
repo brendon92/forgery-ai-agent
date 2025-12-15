@@ -40,6 +40,36 @@ services:
   langfuse-redis:
     image: redis:7
     container_name: forgery-langfuse-redis
+    command: redis-server --requirepass super-secret-redis-password
+    restart: always
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server
+    container_name: forgery-langfuse-clickhouse
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - CLICKHOUSE_DB=default
+      - CLICKHOUSE_PASSWORD=langfuse
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - ./data/langfuse/clickhouse:/var/lib/clickhouse
+    restart: always
+
+  minio:
+    image: minio/minio
+    container_name: forgery-minio
+    ports:
+      - "9100:9000"
+      - "9091:9001"
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=miniosecret
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./data/minio:/data
     restart: always
 
   langfuse-server:
@@ -48,13 +78,27 @@ services:
     depends_on:
       - langfuse-db
       - langfuse-redis
+      - langfuse-clickhouse
+      - minio
     ports:
       - "3300:3000"
     environment:
       - DATABASE_URL=postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
       - REDIS_HOST=langfuse-redis
       - REDIS_PORT=6379
-      - REDIS_AUTH=
+      - REDIS_AUTH=super-secret-redis-password
+      - CLICKHOUSE_URL=http://langfuse-clickhouse:8123
+      - CLICKHOUSE_MIGRATION_URL=clickhouse://default:langfuse@langfuse-clickhouse:9000
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=langfuse
+      - CLICKHOUSE_CLUSTER_ENABLED=false
+      - LANGFUSE_S3_ENDPOINT=http://minio:9000
+      - LANGFUSE_S3_ACCESS_KEY_ID=minio
+      - LANGFUSE_S3_SECRET_ACCESS_KEY=miniosecret
+      - LANGFUSE_S3_BUCKET_NAME=langfuse-blobs
+      - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse-blobs
+      - LANGFUSE_S3_REGION=us-east-1
+      - LANGFUSE_S3_FORCE_PATH_STYLE=true
       - SALT=super-secret-salt # Change this!
       - NEXTAUTH_URL=http://localhost:3300
       - NEXTAUTH_SECRET=super-secret-nextauth-secret # Change this!
@@ -67,11 +111,25 @@ services:
     depends_on:
       - langfuse-db
       - langfuse-redis
+      - langfuse-clickhouse
+      - minio
     environment:
       - DATABASE_URL=postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
       - REDIS_HOST=langfuse-redis
       - REDIS_PORT=6379
-      - REDIS_AUTH=
+      - REDIS_AUTH=super-secret-redis-password
+      - CLICKHOUSE_URL=http://langfuse-clickhouse:8123
+      - CLICKHOUSE_MIGRATION_URL=clickhouse://default:langfuse@langfuse-clickhouse:9000
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=langfuse
+      - CLICKHOUSE_CLUSTER_ENABLED=false
+      - LANGFUSE_S3_ENDPOINT=http://minio:9000
+      - LANGFUSE_S3_ACCESS_KEY_ID=minio
+      - LANGFUSE_S3_SECRET_ACCESS_KEY=miniosecret
+      - LANGFUSE_S3_BUCKET_NAME=langfuse-blobs
+      - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse-blobs
+      - LANGFUSE_S3_REGION=us-east-1
+      - LANGFUSE_S3_FORCE_PATH_STYLE=true
       - SALT=super-secret-salt
     restart: always
 
