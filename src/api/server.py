@@ -15,7 +15,7 @@ from src.services.health_monitor import health_monitor
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Start Health Monitor
-    await health_monitor.start()
+    await health_monitor.start(manager)
     yield
     # Shutdown: Stop Health Monitor
     await health_monitor.stop()
@@ -29,7 +29,6 @@ from datetime import datetime
 
 app.include_router(workspaces.router)
 app.include_router(conversations.router)
-app.include_router(settings.router)
 app.include_router(settings.router)
 app.include_router(agents.router)
 app.include_router(crews.router)

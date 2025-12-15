@@ -1,4 +1,5 @@
 from typing import List, Dict, Any
+import json
 from langchain_community.vectorstores import Qdrant
 from langchain_openai import OpenAIEmbeddings
 
@@ -46,11 +47,16 @@ class SemanticToolRouter:
             # Try to parse properties/args if available
             if "json_schema" in doc.metadata:
                 try:
-                    # In a real scenario, this would be a proper JSON string
-                    # Here we treat it flexibly
-                    tool_def["args"] = doc.metadata.get("json_schema")
-                except:
-                    pass
+                    schema = doc.metadata.get("json_schema")
+                    if isinstance(schema, str):
+                        tool_def["args"] = json.loads(schema)
+                    else:
+                        tool_def["args"] = schema
+                except json.JSONDecodeError:
+                    print(f"Failed to parse JSON schema for tool: {tool_def['name']}")
+                    tool_def["args"] = {}
+                except Exception as e:
+                    print(f"Error processing tool schema: {e}")
                     
             shortlisted_tools.append(tool_def)
             

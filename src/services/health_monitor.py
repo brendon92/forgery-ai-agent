@@ -1,10 +1,9 @@
 import asyncio
 import logging
 import psutil
-from typing import Dict
+from typing import Dict, Any
 from neo4j import GraphDatabase
 from qdrant_client import QdrantClient
-from src.api.server import manager
 from src.utils.config import config
 
 logger = logging.getLogger(__name__)
@@ -12,9 +11,11 @@ logger = logging.getLogger(__name__)
 class HealthMonitor:
     def __init__(self):
         self.is_running = False
+        self.manager = None
         
-    async def start(self):
+    async def start(self, connection_manager: Any):
         self.is_running = True
+        self.manager = connection_manager
         logger.info("Health Monitor started.")
         self._monitor_task = asyncio.create_task(self._monitor_loop())
 
@@ -66,8 +67,9 @@ class HealthMonitor:
                     }
                 }
                 
-                # Broadcast 'health_tick' event
-                await manager.broadcast_event("health_tick", health_data)
+                # Broadcast 'health_tick' event if manager is available
+                if self.manager:
+                    await self.manager.broadcast_event("health_tick", health_data)
                 
             except Exception as e:
                 logger.error(f"Health monitor error: {e}")
