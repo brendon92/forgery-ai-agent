@@ -10,17 +10,14 @@ def run_pipeline():
     traces = collector.fetch_traces(limit=10)
     if not traces:
         print("No traces found. Run the agent first to generate data.")
-        # For demo purposes, let's mock a failure trace if none exist
-        traces = [{"id": "mock-trace", "mock_failure": True}]
+        return
     
     # 2. Analyze Failures
-    # In our mock analyzer, we need to force it to see a failure for the demo
     failures = analyzer.identify_failures(traces)
     
-    # Force a mock failure if logic returns empty (since we have no real data)
-    if not failures and traces:
-        print("No failures detected by analyzer. Using mock failure for demonstration.")
-        failures = [traces[0]]
+    if not failures:
+        print("No failures detected by analyzer. Pipeline complete.")
+        return
     
     print(f"Processing {len(failures)} failures...")
     

@@ -9,6 +9,7 @@ class Config:
     NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")
     
     QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+    QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
     
     LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
     LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")

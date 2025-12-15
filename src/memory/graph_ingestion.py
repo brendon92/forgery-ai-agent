@@ -41,12 +41,24 @@ class GraphIngestionPipeline:
         for doc in documents:
             doc.metadata["workspace_id"] = workspace_id
 
-        # Insert into index (triggers extraction and storage)
         self.index.insert_nodes(documents)
         
-        # TODO: Post-processing to link Document nodes to the Workspace node
-        # This would require a custom cypher query or manual edge creation
-        print("Ingestion complete.")
+        # Post-processing: Link all nodes with this workspace_id to the Workspace node
+        # This ensures that both extracted entities and source documents are connected to the workspace
+        print("Linking nodes to Workspace...")
+        
+        # Query to link any node with matching workspace_id to the Workspace node
+        # We exclude the Workspace node itself to avoid self-loops
+        link_query = f"""
+        MATCH (w:{NodeLabel.WORKSPACE.value} {{id: $workspace_id}})
+        MATCH (n)
+        WHERE n.workspace_id = $workspace_id AND elementId(n) <> elementId(w)
+        MERGE (n)-[:{RelationshipType.BELONGS_TO.value}]->(w)
+        """
+        
+        self.graph_store.query(link_query, params={"workspace_id": workspace_id})
+        
+        print(f"Ingestion and linking complete for workspace {workspace_id}.")
 
     def add_workspace_node(self, workspace_id: str, title: str):
         """Creates the root Workspace node manually"""

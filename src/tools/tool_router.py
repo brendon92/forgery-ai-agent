@@ -24,17 +24,34 @@ class SemanticToolRouter:
         """
         print(f"Routing query: '{query}'...")
         
+        if not self.vector_store:
+            print("Vector store not available. Returning empty tool list.")
+            return []
+            
         # Perform similarity search
-        results = self.vector_store.similarity_search(query, k=self.top_k)
+        try:
+            results = self.vector_store.similarity_search(query, k=self.top_k)
+        except Exception as e:
+            print(f"Tool routing failed: {e}")
+            return []
         
         shortlisted_tools = []
         for doc in results:
-            print(f" - Found tool: {doc.metadata.get('tool_name')}")
-            shortlisted_tools.append({
+            # print(f" - Found tool: {doc.metadata.get('tool_name')}")
+            tool_def = {
                 "name": doc.metadata.get("tool_name"),
                 "description": doc.metadata.get("description"),
-                # We could include the full schema here if needed for direct binding
-                # "args": doc.metadata.get("json_schema") 
-            })
+            }
+            
+            # Try to parse properties/args if available
+            if "json_schema" in doc.metadata:
+                try:
+                    # In a real scenario, this would be a proper JSON string
+                    # Here we treat it flexibly
+                    tool_def["args"] = doc.metadata.get("json_schema")
+                except:
+                    pass
+                    
+            shortlisted_tools.append(tool_def)
             
         return shortlisted_tools

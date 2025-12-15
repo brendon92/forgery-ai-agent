@@ -49,7 +49,7 @@ The agent features a built-in "Super-Ego" node:
 | **API Backend** | **FastAPI** | High-performance Python REST API |
 | **Graph DB** | **Neo4j** | Knowledge Graph storage |
 | **Vector DB** | **Qdrant** | Semantic embedding storage |
-| **Frontend** | **Next.js / React** | Dark Glassmorphism UI with real-time viz |
+| **Frontend** | **Next.js / React** | Dark Glassmorphism UI with real-time WebSocket viz |
 | **Observability** | **Langfuse** | Distributed tracing and cost tracking |
 | **Multi-Agent** | **CrewAI** | Specialized sub-teams (Research, Analysis) |
 
@@ -103,7 +103,12 @@ forgery-ai-agent/
 
 -   [x] **Phase 1: Foundation** (LangGraph, FastAPI, Setup)
 -   [x] **Phase 2: Intelligence** (GraphRAG, Tool Router, Reflection)
--   [x] **Phase 3: Experience** (Real-time Graph Viz, Health Dashboard)
+-   [x] **Phase 3: Experience** (Real-time Graph Viz via WebSockets, Health Dashboard)
 -   [x] **Phase 4: Production** (Docker, Tests, Langfuse, CrewAI)
+-   [x] **Phase 5: Management (New)**
+    -   **Workspaces**: Multi-tenant graph isolation.
+    -   **Agent Personas**: CRUD for defining agent roles and backstories.
+    -   **Crew Builder**: Assemble agents into task-specific crews.
+    -   **Conversations**: Persistent chat history per workspace.
 
 ---

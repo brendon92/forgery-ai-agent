@@ -6,6 +6,7 @@ interface UseWebSocketOptions {
   onMessage?: (event: MessageEvent) => void;
   reconnectInterval?: number;
   maxRetries?: number;
+  shouldReconnect?: boolean;
 }
 
 export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
@@ -14,7 +15,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retriesRef = useRef(0);
 
-  const { onMessage, reconnectInterval = 3000, maxRetries = 5 } = options;
+  const { onMessage, reconnectInterval = 3000, maxRetries = 5, shouldReconnect = true } = options;
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -39,7 +40,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
       setStatus('CLOSED');
       wsRef.current = null;
 
-      if (retriesRef.current < maxRetries) {
+      if (shouldReconnect && retriesRef.current < maxRetries) {
         reconnectTimeoutRef.current = setTimeout(() => {
           retriesRef.current += 1;
           connect();

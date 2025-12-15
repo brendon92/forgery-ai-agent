@@ -22,8 +22,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Forgery Agent API", lifespan=lifespan)
 
-from src.api.routers import workspaces
+from src.api.routers import workspaces, conversations, settings, agents, crews
+from src.api.routers.conversations import messages_db, conversations_db
+import uuid
+from datetime import datetime
+
 app.include_router(workspaces.router)
+app.include_router(conversations.router)
+app.include_router(settings.router)
+app.include_router(settings.router)
+app.include_router(agents.router)
+app.include_router(crews.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,6 +109,17 @@ async def websocket_endpoint(websocket: WebSocket):
             # Broadcast log event
             await manager.broadcast_event("log", {"level": "INFO", "message": f"User Input: {user_input}"})
             
+            # Save User Message
+            conversation_id = message_data.get("conversation_id")
+            if conversation_id and conversation_id in conversations_db:
+                # Save to DB
+                messages_db[conversation_id].append({
+                    "id": str(uuid.uuid4()),
+                    "role": "user",
+                    "content": user_input,
+                    "timestamp": datetime.now().isoformat()
+                })
+            
             initial_state = {
                 "messages": [HumanMessage(content=user_input)],
                 "reflection_score": 0.0,
@@ -109,6 +129,8 @@ async def websocket_endpoint(websocket: WebSocket):
             # Initialize Langfuse Handler
             from langfuse.callback import CallbackHandler
             langfuse_handler = CallbackHandler()
+
+            full_response_content = ""
 
             # Stream events from the graph
             async for output in agent_app.astream(initial_state, config={"callbacks": [langfuse_handler]}):
@@ -124,8 +146,22 @@ async def websocket_endpoint(websocket: WebSocket):
                     # Also broadcast graph_update to event stream for visualization
                     await manager.broadcast_event("graph_update", {
                         "node": node_name,
-                        "status": "completed" # granularity can be improved with custom callbacks
+                        "status": "completed"
                     })
+                    
+                    # Capture Agent response from agent_node (simplified)
+                    if node_name == "agent" and "messages" in node_state:
+                         last_msg = node_state["messages"][-1]
+                         full_response_content = last_msg.content
+            
+            # Save Agent Message
+            if conversation_id and full_response_content and conversation_id in conversations_db:
+                 messages_db[conversation_id].append({
+                    "id": str(uuid.uuid4()),
+                    "role": "assistant",
+                    "content": full_response_content,
+                    "timestamp": datetime.now().isoformat()
+                })
             
             # Send completion message
             await websocket.send_text(json.dumps({"type": "complete"}))

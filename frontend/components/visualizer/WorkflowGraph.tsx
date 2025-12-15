@@ -39,22 +39,27 @@ export default function WorkflowGraph() {
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
 
-    // Mock WebSocket connection logic - replace with actual context/hook
-    useEffect(() => {
-        // Ideally, we subscribe to the global EventSocket here.
-        // For demo purposes, we'll setup a simple listener if the socket was globally available.
+    // Connect to the backend event stream
+    // We use a fixed client ID 'frontend-graph' for visualization
+    const { status } = useWebSocket('ws://localhost:8000/ws/events/frontend-graph', {
+        onMessage: (event) => {
+            try {
+                const payload = JSON.parse(event.data);
+                if (payload.type === 'graph_update') {
+                    // Update active node
+                    const { node, status } = payload.data;
+                    console.log("[GraphViz] Update:", node, status);
+                    setActiveNodeId(node);
 
-        // Simulating active node update
-        const handleGraphUpdate = (event: CustomEvent) => {
-            const { node, status } = event.detail;
-            if (status === 'running' || status === 'completed') {
-                setActiveNodeId(node);
+                    // Optional: Clear active node after a delay if 'completed'
+                    // setTimeout(() => setActiveNodeId(null), 2000);
+                }
+            } catch (e) {
+                console.error("Failed to parse graph event:", e);
             }
-        };
-
-        // window.addEventListener('graph-update', handleGraphUpdate as EventListener);
-        // return () => window.removeEventListener('graph-update', handleGraphUpdate as EventListener);
-    }, []);
+        },
+        shouldReconnect: true,
+    });
 
     // Update node styles based on active state
     useEffect(() => {
@@ -89,7 +94,10 @@ export default function WorkflowGraph() {
         <div className="w-full h-[500px] glass-panel rounded-xl overflow-hidden relative">
             <div className="absolute top-4 left-4 z-10">
                 <h3 className="neon-text text-lg font-bold">Live Agent Workflow</h3>
-                <p className="text-xs text-gray-400">Real-time execution trace</p>
+                <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${status === 'OPEN' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500'}`} />
+                    <p className="text-xs text-gray-400">{status === 'OPEN' ? 'Live Execution' : 'Disconnected'}</p>
+                </div>
             </div>
 
             <ReactFlow
