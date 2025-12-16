@@ -17,4 +17,16 @@ class Config:
     
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+    # Local LLM / Ollama
+    OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    
+    # Model Configuration
+    # Maps logical roles to physical model names
+    MODEL_CONFIG = {
+        "fast": "qwen2.5:1.5b",      # Fast, cheap, good for simple tasks
+        "smart": "gpt-4o",           # The heavy lifter
+        "local_smart": "llama3.2",   # Strongest local model
+        "reflector": "gpt-4o",       # Self-correction usually needs high intelligence
+    }
+
 config = Config()

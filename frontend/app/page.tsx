@@ -1,45 +1,66 @@
 "use client";
 
 import { useState } from "react";
-import ChatInterface from "@/components/ChatInterface";
-import WorkflowGraph from "@/components/GraphVisualizer";
-import SystemHealth from "@/components/dashboard/SystemHealth";
-import Sidebar from "@/components/Sidebar";
-import SettingsPanel from "@/components/SettingsPanel";
+import { AnimatePresence, motion } from "framer-motion";
+
+// Components
+import Navbar, { Tab } from "@/components/Navbar";
+import WorkspaceView from "@/components/WorkspaceView";
+import AgentManager from "@/components/AgentManager";
+import CrewBuilder from "@/components/CrewBuilder";
+import WorkflowBuilder from "@/components/WorkflowBuilder";
+import ModelsManager from "@/components/ModelsManager";
+import ToolsManager from "@/components/ToolsManager";
+import SettingsView from "@/components/SettingsView";
 
 export default function Home() {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>('WORKSPACES');
 
   return (
-    <div className="flex h-screen w-screen bg-black text-white overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-screen bg-black text-white overflow-hidden font-sans">
 
-      {/* 1. Left Sidebar */}
-      <Sidebar onOpenSettings={() => setIsSettingsOpen(true)} />
+      {/* Main Content Area */}
+      <main className="flex-1 relative overflow-hidden pb-16">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="h-full w-full"
+          >
+            {activeTab === 'WORKSPACES' && <WorkspaceView />}
 
-      {/* 2. Main Content Area (Chat & Graph) */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <div className="flex-1 flex relative">
-          {/* Chat takes center stage */}
-          <div className="flex-1 flex flex-col min-w-0 bg-gray-900/30">
-            <ChatInterface />
-          </div>
-        </div>
+            {activeTab === 'AGENTS' && (
+              <div className="h-full p-4 max-w-7xl mx-auto">
+                <AgentManager />
+              </div>
+            )}
+
+            {activeTab === 'CREWS' && (
+              <div className="h-full p-4 max-w-7xl mx-auto">
+                <CrewBuilder />
+              </div>
+            )}
+
+            {activeTab === 'MODELS' && <ModelsManager />}
+
+            {activeTab === 'WORKFLOWS' && (
+              <div className="h-full w-full">
+                <WorkflowBuilder />
+              </div>
+            )}
+
+            {activeTab === 'MCP_TOOLS' && <ToolsManager />}
+
+            {activeTab === 'SETTINGS' && <SettingsView />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
-      {/* 3. Right Panel (Context/Health) */}
-      <aside className="w-80 border-l border-gray-800 bg-gray-900/50 flex flex-col">
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="h-1/2 border-b border-gray-800 relative">
-            <WorkflowGraph />
-          </div>
-          <div className="h-1/2 p-4">
-            <SystemHealth />
-          </div>
-        </div>
-      </aside>
-
-      {/* Modals */}
-      {isSettingsOpen && <SettingsPanel onClose={() => setIsSettingsOpen(false)} />}
+      {/* Bottom Navigation */}
+      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }

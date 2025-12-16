@@ -1,7 +1,8 @@
 import os
 from typing import List, Optional
 from llama_index.core import Document, PropertyGraphIndex
-from llama_index.graph_stores.neo4j import Neo4jGraphStore
+from llama_index.graph_stores.neo4j import Neo4jPropertyGraphStore
+from neo4j import GraphDatabase
 from llama_index.llms.openai import OpenAI
 from llama_index.core.indices.property_graph import SchemaLLMPathExtractor
 
@@ -10,10 +11,16 @@ from src.memory.graph_schema import NodeLabel, RelationshipType
 class GraphIngestionPipeline:
     def __init__(self):
         # Initialize connection to Neo4j
-        self.graph_store = Neo4jGraphStore(
+        self.graph_store = Neo4jPropertyGraphStore(
             username=os.getenv("NEO4J_USERNAME", "neo4j"),
             password=os.getenv("NEO4J_PASSWORD", "password"),
             url=os.getenv("NEO4J_URL", "bolt://localhost:7687"),
+        )
+        
+        # Direct driver for custom queries
+        self.driver = GraphDatabase.driver(
+            os.getenv("NEO4J_URL", "bolt://localhost:7687"),
+            auth=(os.getenv("NEO4J_USERNAME", "neo4j"), os.getenv("NEO4J_PASSWORD", "password"))
         )
         
         # Initialize Property Graph Index
@@ -29,6 +36,11 @@ class GraphIngestionPipeline:
                 )
             ]
         )
+
+    def query(self, query_str: str, params: dict = None):
+        """Execute a raw Cypher query using the driver"""
+        records, summary, keys = self.driver.execute_query(query_str, params)
+        return records
 
     async def ingest_documents(self, documents: List[Document], workspace_id: str):
         """
@@ -56,14 +68,20 @@ class GraphIngestionPipeline:
         MERGE (n)-[:{RelationshipType.BELONGS_TO.value}]->(w)
         """
         
-        self.graph_store.query(link_query, params={"workspace_id": workspace_id})
+        self.query(link_query, params={"workspace_id": workspace_id})
         
         print(f"Ingestion and linking complete for workspace {workspace_id}.")
 
-    def add_workspace_node(self, workspace_id: str, title: str):
+    def add_workspace_node(self, workspace_id: str, title: str, goal: Optional[str] = None):
         """Creates the root Workspace node manually"""
         query = f"""
-        MERGE (w:{NodeLabel.WORKSPACE} {{id: $id}})
+        MERGE (w:{NodeLabel.WORKSPACE.value} {{id: $id}})
         SET w.title = $title
         """
-        self.graph_store.query(query, params={"id": workspace_id, "title": title})
+        params = {"id": workspace_id, "title": title}
+        
+        if goal:
+            query += "\n        SET w.goal = $goal"
+            params["goal"] = goal
+            
+        self.query(query, params=params)

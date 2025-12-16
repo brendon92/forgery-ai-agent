@@ -6,7 +6,17 @@ import json
 import logging
 from typing import List, Dict
 
-logging.basicConfig(level=logging.INFO)
+import os
+log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_str, logging.INFO)
+
+logging.basicConfig(level=log_level)
+
+# Set level for specific loggers that might be chatty
+logging.getLogger("uvicorn.access").setLevel(log_level)
+logging.getLogger("uvicorn.error").setLevel(log_level)
+logging.getLogger("neo4j").setLevel(log_level)
+
 logger = logging.getLogger(__name__)
 
 from contextlib import asynccontextmanager
@@ -20,17 +30,27 @@ async def lifespan(app: FastAPI):
     # Shutdown: Stop Health Monitor
     await health_monitor.stop()
 
-app = FastAPI(title="Forgery Agent API", lifespan=lifespan)
+app = FastAPI(title="Forgery AI Agent API", version="1.0.0")
 
-from src.api.routers import workspaces, conversations, settings, agents, crews
-from src.api.routers.conversations import messages_db, conversations_db
+from src.api.routers import agents, workspaces, crews, mcp, settings, models
 import uuid
 from datetime import datetime
 
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include Routers
 app.include_router(workspaces.router)
-app.include_router(conversations.router)
-app.include_router(settings.router)
 app.include_router(agents.router)
+app.include_router(crews.router)
+app.include_router(mcp.router)
+app.include_router(settings.router)
+app.include_router(models.router)
 app.include_router(crews.router)
 
 app.add_middleware(
@@ -126,7 +146,7 @@ async def websocket_endpoint(websocket: WebSocket):
             }
             
             # Initialize Langfuse Handler
-            from langfuse.callback import CallbackHandler
+            from langfuse.langchain import CallbackHandler
             langfuse_handler = CallbackHandler()
 
             full_response_content = ""

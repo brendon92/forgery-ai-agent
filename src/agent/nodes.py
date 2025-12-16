@@ -7,7 +7,10 @@ from src.utils.config import config
 from src.tools.tool_router import SemanticToolRouter
 
 # Initialize LLM
-llm = ChatOpenAI(model="gpt-4o", api_key=config.OPENAI_API_KEY)
+from src.agent.model_factory import ModelFactory
+
+# Remove global llm
+# llm = ChatOpenAI(model="gpt-4o", api_key=config.OPENAI_API_KEY)
 
 # Initialize Router
 tool_router = SemanticToolRouter(top_k=5)
@@ -20,6 +23,10 @@ class ReflectionNode:
     def __call__(self, state: AgentState) -> Dict[str, Any]:
         messages = state['messages']
         last_message = messages[-1]
+        
+        # Get Reflector Model (usually kept as 'reflector' -> gpt-4o or similar strong model)
+        # But user might want local strong model for pivot
+        llm = ModelFactory.get_model("reflector")
         
         # System prompt for the reflector
         system_prompt = (
@@ -49,10 +56,22 @@ class ReflectionNode:
             
         print(f"Reflection Score: {score} | Reason: {reason}")
         
-        return {
+        # Self-Improvement Logic:
+        # If score is low, maybe we need a smarter model next time?
+        # Update active_model_type for the subsequent retry in the Agent Node
+        updates = {
             "reflection_score": score, 
             "retry_count": state.get("retry_count", 0) + 1
         }
+        
+        if score < 0.7:
+             # Strategy: Switch to 'smart' or 'local_smart' if we were on 'fast'
+             current_model = state.get("active_model_type", "fast")
+             if current_model == "fast":
+                 print("REFLECTION: Downgrading confidence, switching to SMART model for retry.")
+                 updates["active_model_type"] = "smart" # or 'local_smart' depending on preference
+                 
+        return updates
 
 def agent_node(state: AgentState):
     """
@@ -61,6 +80,11 @@ def agent_node(state: AgentState):
     """
     messages = state['messages']
     user_query = messages[-1].content
+    
+    # Resolve Model
+    model_type = state.get("active_model_type", "fast") # Default to fast (e.g. qwen)
+    llm = ModelFactory.get_model(model_type)
+    print(f"AGENT: Using model type '{model_type}' -> {getattr(llm, 'model', 'unknown')}")
     
     # Dynamic Tool Retrieval
     relevant_tools = tool_router.route(user_query)
@@ -75,10 +99,15 @@ def agent_node(state: AgentState):
         tools_list = "\n".join([f"- {t['name']}: {t['description']}" for t in relevant_tools])
         tools_context = f"\nAVAILABLE TOOLS:\n{tools_list}\n\nTo use a tool, strictly output a JSON block: {{\"tool\": \"tool_name\", \"args\": {{...}}}}"
 
+    # Use dynamic system instructions if available, otherwise fallback
+    base_instructions = state.get("system_instructions")
+    if not base_instructions:
+        base_instructions = "You are Forgery, an expert executive AI assistant."
+
     system_prompt = (
-        "You are Forgery, an expert executive AI assistant. "
-        f"{tools_context}"
-        "\nIf you can answer directly, do so."
+        f"{base_instructions}\n"
+        f"{tools_context}\n"
+        "If you can answer directly, do so."
     )
     
     response = llm.invoke([SystemMessage(content=system_prompt)] + messages)

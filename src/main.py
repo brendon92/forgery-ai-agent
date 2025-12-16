@@ -13,7 +13,7 @@ async def main():
     }
     
     # Initialize Langfuse Handler
-    from langfuse.callback import CallbackHandler
+    from langfuse.langchain import CallbackHandler
     langfuse_handler = CallbackHandler()
 
     # Run the graph

@@ -7,3 +7,6 @@ class AgentState(TypedDict):
     next_step: str
     reflection_score: float
     retry_count: int
+    agent_id: str
+    system_instructions: str
+    active_model_type: str # 'fast', 'smart', 'local_smart'

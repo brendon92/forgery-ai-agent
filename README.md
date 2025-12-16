@@ -41,6 +41,49 @@ The agent features a built-in "Super-Ego" node:
 -   **Critique Phase**: Before showing a result, a separate `ReflectionNode` evaluates the output for hallucinations and completeness.
 -   **Refinement Loop**: If the score is low, the agent self-corrects and tries again (up to 3 times).
 
+## 📐 Architecture & Logic Flow
+
+### Simplified Flow
+```mermaid
+graph LR
+    User[User] -->|Query| UI[Web UI]
+    UI -->|API Request| API[FastAPI Backend]
+    API -->|Orchestrate| Agent[LangGraph Agent]
+    Agent -->|Action| Tools[MCP Tools / RAG]
+    Tools -->|Result| Agent
+    Agent -->|Response| UI
+```
+
+### Detailed Execution Logic
+```mermaid
+stateDiagram-v2
+    [*] --> AgentNode
+    
+    state AgentNode {
+        [*] --> RAGonTools
+        RAGonTools --> GenerateResponse
+    }
+
+    AgentNode --> ReflectionNode: Response Generated
+    
+    state ReflectionNode {
+        [*] --> EvaluateCritique
+        EvaluateCritique --> Score
+    }
+
+    ReflectionNode --> ToolNode: Score > 0.8 & Tool Call Detected
+    ReflectionNode --> AgentNode: Score < 0.8 (Retry)
+    ReflectionNode --> End: Score > 0.8 & No Tool Call
+    
+    state ToolNode {
+        [*] --> ExecuteMCP
+        ExecuteMCP --> ReturnResult
+    }
+    
+    ToolNode --> AgentNode: Result used for next step
+    End --> [*]
+```
+
 ## 🛠️ Tech Stack
 
 | Layer | Component | Description |
@@ -52,6 +95,21 @@ The agent features a built-in "Super-Ego" node:
 | **Frontend** | **Next.js / React** | Dark Glassmorphism UI with real-time WebSocket viz |
 | **Observability** | **Langfuse** | Distributed tracing and cost tracking |
 | **Multi-Agent** | **CrewAI** | Specialized sub-teams (Research, Analysis) |
+
+## ⚙️ Configuration
+
+Create a `.env` file in the root directory. You can use `.env.example` as a template.
+
+| Variable | Description | Default / Required |
+| :--- | :--- | :--- |
+| **OPENAI_API_KEY** | Your OpenAI API Key | **Required** |
+| **LOG_LEVEL** | Service logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` |
+| **QDRANT_URL** | URL for Qdrant Vector DB | `http://qdrant:6333` |
+| **NEO4J_URI** | URI for Neo4j Graph DB | `bolt://neo4j:7687` |
+| **NEO4J_USERNAME** | Neo4j Username | `neo4j` |
+| **NEO4J_PASSWORD** | Neo4j Password | `password` |
+| **LANGFUSE_PUBLIC_KEY** | Langfuse Public Key for tracing | Optional |
+| **LANGFUSE_SECRET_KEY** | Langfuse Secret Key for tracing | Optional |
 
 ## 🚀 Quick Start
 
